@@ -11,41 +11,33 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
-// Temporary email service
-class TemporaryEmailService {
-    constructor() {
-        this.emails = new Map();
+// Business email configuration - use environment variables for security
+const BUSINESS_EMAIL = process.env.EMAIL_ADDRESS || 'flowersforyou226@gmail.com';
+const APP_PASSWORD = process.env.EMAIL_APP_PASSWORD || 'mlbrtqzabnilesbl';
+
+// Create transporter with Gmail SMTP
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: BUSINESS_EMAIL,
+        pass: APP_PASSWORD
     }
+});
 
-    async createTemporaryEmail() {
-        const randomId = Math.random().toString(36).substring(2, 15);
-        const tempEmail = `temp_${randomId}@virtualflowers.temp`;
-        
-        this.emails.set(tempEmail, {
-            created: Date.now(),
-            expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-        });
-
-        return tempEmail;
+// Verify transporter configuration
+transporter.verify((error, success) => {
+    if (error) {
+        console.log('Email configuration error:', error);
+    } else {
+        console.log('Email server is ready to send messages!');
     }
-
-    isValidEmail(email) {
-        const tempData = this.emails.get(email);
-        if (tempData && tempData.expires > Date.now()) {
-            return true;
-        }
-        return false;
-    }
-}
-
-const tempEmailService = new TemporaryEmailService();
+});
 
 // Email sending endpoint
 app.post('/api/send-flower', async (req, res) => {
     try {
         const {
             senderName,
-            senderEmail,
             recipientEmail,
             recipientName,
             message,
@@ -56,18 +48,6 @@ app.post('/api/send-flower', async (req, res) => {
         if (!senderName || !recipientEmail || !recipientName || !flower) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
-
-        // Create transporter using a free email service (Mailtrap for demo, or configure your own SMTP)
-        // For production, replace with your actual SMTP credentials
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
-            port: parseInt(process.env.SMTP_PORT) || 2525,
-            secure: false,
-            auth: {
-                user: process.env.SMTP_USER || 'demo_user',
-                pass: process.env.SMTP_PASS || 'demo_pass'
-            }
-        });
 
         // Create beautiful HTML email
         const emailHtml = `
@@ -120,14 +100,6 @@ app.post('/api/send-flower', async (req, res) => {
             margin-top: 30px;
             font-style: italic;
         }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-            color: #999;
-            font-size: 0.9em;
-        }
     </style>
 </head>
 <body>
@@ -153,19 +125,14 @@ app.post('/api/send-flower', async (req, res) => {
         <div class="sender-info">
             <p>With love from<br><strong>${senderName}</strong></p>
         </div>
-        
-        <div class="footer">
-            <p>Sent via Virtual Flowers 🌺</p>
-            <p>Spread the joy of virtual flowers!</p>
-        </div>
     </div>
 </body>
 </html>
         `;
 
-        // Email options
+        // Email options - sender name is customizable by user
         const mailOptions = {
-            from: `"${senderName} via Virtual Flowers" <noreply@virtualflowers.com>`,
+            from: `"${senderName}" <${BUSINESS_EMAIL}>`,
             to: recipientEmail,
             subject: `🌸 ${senderName} sent you a virtual ${flower.name}!`,
             html: emailHtml
@@ -181,33 +148,24 @@ app.post('/api/send-flower', async (req, res) => {
 
     } catch (error) {
         console.error('Error sending email:', error);
-        // If SMTP fails, still return success for demo purposes
-        // In production, you'd want to handle this properly
-        if (error.code === 'EAUTH' || error.code === 'ECONNECTION') {
-            res.json({ 
-                success: true, 
-                message: 'Flower sent successfully! (Demo mode - configure SMTP for real emails)',
-                demo: true
-            });
-        } else {
-            res.status(500).json({ 
-                error: 'Failed to send flower. Please try again.' 
-            });
+        
+        // Provide more specific error messages
+        let errorMessage = 'Failed to send flower. Please try again.';
+        
+        if (error.code === 'EAUTH' || error.message.includes('authentication')) {
+            errorMessage = 'Email authentication failed. Please check the email credentials.';
+        } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            errorMessage = 'Network connection error. Please check your internet connection.';
+        } else if (error.code === 'ETIMEDOUT') {
+            errorMessage = 'Connection timed out. Please try again later.';
+        } else if (error.message) {
+            errorMessage = 'Error: ' + error.message;
         }
-    }
-});
-
-// Temporary email creation endpoint
-app.post('/api/create-temp-email', async (req, res) => {
-    try {
-        const tempEmail = await tempEmailService.createTemporaryEmail();
-        res.json({ 
-            success: true, 
-            email: tempEmail,
-            expiresIn: '24 hours'
+        
+        res.status(500).json({
+            error: errorMessage,
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to create temporary email' });
     }
 });
 
@@ -223,5 +181,5 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`🌸 Virtual Flowers server running on http://localhost:${PORT}`);
-    console.log(`Send beautiful flowers to your loved ones!`);
+    console.log(`Sending flowers from: ${BUSINESS_EMAIL}`);
 });

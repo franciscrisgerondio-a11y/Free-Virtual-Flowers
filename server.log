@@ -1,18 +1,3 @@
 🌸 Virtual Flowers server running on http://localhost:3000
-Send beautiful flowers to your loved ones!
-Error sending email: Error: Invalid login: 535 5.7.0 Invalid credentials
-    at SMTPConnection._formatError (/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:809:19)
-    at SMTPConnection._actionAUTHComplete (/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:1588:34)
-    at SMTPConnection.<anonymous> (/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:556:26)
-    at SMTPConnection._processResponse (/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:993:20)
-    at SMTPConnection._onData (/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:774:14)
-    at SMTPConnection._onSocketData (/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:195:44)
-    at TLSSocket.emit (node:events:524:28)
-    at addChunk (node:internal/streams/readable:561:12)
-    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
-    at Readable.push (node:internal/streams/readable:392:5) {
-  code: 'EAUTH',
-  response: '535 5.7.0 Invalid credentials',
-  responseCode: 535,
-  command: 'AUTH PLAIN'
-}
+Sending flowers from: flowersforyou226@gmail.com
+Email server is ready to send messages!
