@@ -137,27 +137,17 @@
             min-height: 100px;
         }
 
-        .email-type-selector {
-            display: flex;
-            gap: 15px;
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
             margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
         }
 
-        .email-type-btn {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .email-type-btn.active {
-            border-color: #667eea;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .info-box p {
+            color: #2c5282;
+            line-height: 1.6;
         }
 
         .send-btn {
@@ -292,31 +282,13 @@
                 <h2>Send Your Flower</h2>
                 
                 <div class="info-box">
-                    <p><strong>Note:</strong> For Gmail sending, you'll need to use an App Password from your Google Account settings. Enable 2FA first, then generate an app password at myaccount.google.com/apppasswords</p>
-                </div>
-
-                <div class="email-type-selector">
-                    <button class="email-type-btn active" data-type="personal">Personal Email</button>
-                    <button class="email-type-btn" data-type="temporary">Temporary Email</button>
+                    <p><strong>Note:</strong> This service uses a temporary email system. Simply fill in your name and send beautiful flowers to your loved ones!</p>
                 </div>
 
                 <form id="sendForm">
                     <div class="form-group">
                         <label for="senderName">Your Name</label>
                         <input type="text" id="senderName" required placeholder="John Doe">
-                    </div>
-
-                    <div class="form-group" id="senderEmailGroup">
-                        <label for="senderEmail">Your Email Address</label>
-                        <input type="email" id="senderEmail" required placeholder="your.email@gmail.com">
-                    </div>
-
-                    <div class="form-group" id="gmailPasswordGroup" style="display: none;">
-                        <label for="gmailPassword">Gmail App Password</label>
-                        <input type="password" id="gmailPassword" placeholder="Your Gmail App Password">
-                        <small style="color: #666; display: block; margin-top: 5px;">
-                            Required for sending via Gmail. <a href="https://support.google.com/accounts/answer/185833" target="_blank">How to get it</a>
-                        </small>
                     </div>
 
                     <div class="form-group">
@@ -344,7 +316,6 @@
 
     <script>
         let selectedFlower = null;
-        let emailType = 'personal';
 
         // Flower selection
         document.querySelectorAll('.flower-option').forEach(option => {
@@ -366,23 +337,6 @@
             });
         });
 
-        // Email type selector
-        document.querySelectorAll('.email-type-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.email-type-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                emailType = btn.dataset.type;
-                
-                const gmailPasswordGroup = document.getElementById('gmailPasswordGroup');
-                if (emailType === 'personal') {
-                    gmailPasswordGroup.style.display = 'block';
-                } else {
-                    gmailPasswordGroup.style.display = 'none';
-                    document.getElementById('gmailPassword').value = '';
-                }
-            });
-        });
-
         // Form submission
         document.getElementById('sendForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -394,21 +348,12 @@
 
             const formData = {
                 senderName: document.getElementById('senderName').value,
-                senderEmail: document.getElementById('senderEmail').value,
+                senderEmail: 'temp@virtualflowers.com',
                 recipientEmail: document.getElementById('recipientEmail').value,
                 recipientName: document.getElementById('recipientName').value,
                 message: document.getElementById('message').value,
-                flower: selectedFlower,
-                emailType: emailType
+                flower: selectedFlower
             };
-
-            if (emailType === 'personal') {
-                formData.gmailPassword = document.getElementById('gmailPassword').value;
-                if (!formData.gmailPassword) {
-                    showMessage('Please enter your Gmail App Password!', 'error');
-                    return;
-                }
-            }
 
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
@@ -425,7 +370,7 @@
 
                 const result = await response.json();
 
-                if (response.ok) {
+                if (response.ok || result.success) {
                     showMessage(`🎉 Flower sent successfully to ${formData.recipientName}!`, 'success');
                     document.getElementById('sendForm').reset();
                     document.querySelectorAll('.flower-option').forEach(o => o.classList.remove('selected'));
