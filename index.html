@@ -282,12 +282,12 @@
                 <h2>Send Your Flower</h2>
                 
                 <div class="info-box">
-                    <p><strong>Note:</strong> This service uses a temporary email system. Simply fill in your name and send beautiful flowers to your loved ones!</p>
+                    <p><strong>Note:</strong> All flowers are sent from our business email. Just enter your name as the sender and we'll deliver beautiful flowers to your loved ones!</p>
                 </div>
 
                 <form id="sendForm">
                     <div class="form-group">
-                        <label for="senderName">Your Name</label>
+                        <label for="senderName">Your Name (Sender)</label>
                         <input type="text" id="senderName" required placeholder="John Doe">
                     </div>
 
@@ -348,19 +348,21 @@
 
             const formData = {
                 senderName: document.getElementById('senderName').value,
-                senderEmail: 'temp@virtualflowers.com',
                 recipientEmail: document.getElementById('recipientEmail').value,
                 recipientName: document.getElementById('recipientName').value,
                 message: document.getElementById('message').value,
                 flower: selectedFlower
             };
 
+            // IMPORTANT: Replace this with your actual Render app URL after deployment
+            const API_BASE_URL = 'https://YOUR-RENDER-APP.onrender.com';
+            
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
             sendBtn.textContent = 'Sending...';
 
             try {
-                const response = await fetch('/api/send-flower', {
+                const response = await fetch(`${API_BASE_URL}/api/send-flower`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -368,20 +370,35 @@
                     body: JSON.stringify(formData)
                 });
 
-                const result = await response.json();
+                // Get response text first to debug
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+                
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
+                    throw new Error('Invalid response from server: ' + responseText.substring(0, 100));
+                }
 
-                if (response.ok || result.success) {
+                if (response.ok && result.success) {
                     showMessage(`🎉 Flower sent successfully to ${formData.recipientName}!`, 'success');
                     document.getElementById('sendForm').reset();
                     document.querySelectorAll('.flower-option').forEach(o => o.classList.remove('selected'));
                     document.getElementById('previewSection').classList.remove('show');
                     selectedFlower = null;
                 } else {
-                    showMessage(result.error || 'Failed to send flower. Please try again.', 'error');
+                    // Server returned an error
+                    const errorMsg = result.error || 'Failed to send flower. Please try again.';
+                    console.error('Server error:', errorMsg);
+                    showMessage(errorMsg, 'error');
                 }
             } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
-                console.error('Error:', error);
+                // Network or other error
+                const errorMsg = error.message || 'Network error. Please check your connection and try again.';
+                console.error('Fetch error:', error);
+                showMessage('Error: ' + errorMsg, 'error');
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.textContent = 'Send Flower 🌸';
