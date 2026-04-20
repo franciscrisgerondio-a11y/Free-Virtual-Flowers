@@ -306,6 +306,12 @@
                         <textarea id="message" placeholder="Write a heartfelt message..."></textarea>
                     </div>
 
+                    <div class="form-group">
+                        <label for="replyToEmail">Your Email for Replies (Optional)</label>
+                        <input type="email" id="replyToEmail" placeholder="your-email@example.com">
+                        <small style="color: #666; display: block; margin-top: 5px;">If provided, this email will be included so the recipient knows where to send their reply.</small>
+                    </div>
+
                     <button type="submit" class="send-btn" id="sendBtn">Send Flower 🌸</button>
                 </form>
 
@@ -351,6 +357,7 @@
                 recipientEmail: document.getElementById('recipientEmail').value,
                 recipientName: document.getElementById('recipientName').value,
                 message: document.getElementById('message').value,
+                replyToEmail: document.getElementById('replyToEmail').value,
                 flower: selectedFlower
             };
 
