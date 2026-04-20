@@ -1,9 +1,1 @@
-```
-# Logs and temp files
-*.log
-
-# Environment
-.env
-.env.local
-.env.*
-```
+Nothing needs to be added to .gitignore since the changes only include source files (index.html, server.js) and no build artifacts, dependencies, or temporary files.

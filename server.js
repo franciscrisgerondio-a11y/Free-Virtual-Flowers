@@ -41,6 +41,7 @@ app.post('/api/send-flower', async (req, res) => {
             recipientEmail,
             recipientName,
             message,
+            replyToEmail,
             flower
         } = req.body;
 
@@ -49,6 +50,9 @@ app.post('/api/send-flower', async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
+        // Check if reply-to email is the business Gmail address
+        const isReplyToGmail = replyToEmail && replyToEmail.toLowerCase().includes('@gmail.com');
+        
         // Create beautiful HTML email
         const emailHtml = `
 <!DOCTYPE html>
@@ -100,6 +104,20 @@ app.post('/api/send-flower', async (req, res) => {
             margin-top: 30px;
             font-style: italic;
         }
+        .reply-info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .warning-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
     </style>
 </head>
 <body>
@@ -122,6 +140,18 @@ app.post('/api/send-flower', async (req, res) => {
         </div>
         ` : ''}
         
+        ${replyToEmail ? `
+        ${isReplyToGmail ? `
+        <div class="warning-box">
+            <p style="margin: 0; color: #721c24;"><strong>⚠️ Important Notice:</strong> The sender provided a Gmail address (${replyToEmail}) for replies. Please note that replies to this email will go directly to the sender's personal Gmail account, not through our virtual flowers service.</p>
+        </div>
+        ` : `
+        <div class="reply-info">
+            <p style="margin: 0; color: #856404;"><strong>📧 Reply Information:</strong> If you'd like to respond to this flower gift, you can reach the sender at: <a href="mailto:${replyToEmail}" style="color: #667eea;">${replyToEmail}</a></p>
+        </div>
+        `}
+        ` : ''}
+        
         <div class="sender-info">
             <p>With love from<br><strong>${senderName}</strong></p>
         </div>
@@ -135,7 +165,8 @@ app.post('/api/send-flower', async (req, res) => {
             from: `"${senderName}" <${BUSINESS_EMAIL}>`,
             to: recipientEmail,
             subject: `🌸 ${senderName} sent you a virtual ${flower.name}!`,
-            html: emailHtml
+            html: emailHtml,
+            replyTo: replyToEmail || undefined
         };
 
         // Send email
