@@ -212,19 +212,6 @@
             text-align: center;
             margin-bottom: 10px;
         }
-
-        .info-box {
-            background: #e7f3ff;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 0 8px 8px 0;
-        }
-
-        .info-box p {
-            color: #2c5282;
-            line-height: 1.6;
-        }
     </style>
 </head>
 <body>
@@ -309,7 +296,15 @@
                     <div class="form-group">
                         <label for="replyToEmail">Your Email for Replies (Optional)</label>
                         <input type="email" id="replyToEmail" placeholder="your-email@example.com">
-                        <small style="color: #666; display: block; margin-top: 5px;">If provided, this email will be included so the recipient knows where to send their reply.</small>
+                        <small style="color: #666; display: block; margin-top: 5px;">If provided, replies will be sent to this email.</small>
+                    </div>
+
+                    <div class="form-group" id="emailVisibilityGroup" style="display: none;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="hideEmail" style="width: auto; margin-right: 10px;">
+                            <span>Hide my email from the recipient</span>
+                        </label>
+                        <small style="color: #666; display: block; margin-top: 5px; margin-left: 26px;">When checked, your email won't be shown in the flower message, but replies will still come to you.</small>
                     </div>
 
                     <button type="submit" class="send-btn" id="sendBtn">Send Flower 🌸</button>
@@ -343,6 +338,19 @@
             });
         });
 
+        // Toggle email visibility checkbox when reply-to email is entered
+        const replyToEmailInput = document.getElementById('replyToEmail');
+        const emailVisibilityGroup = document.getElementById('emailVisibilityGroup');
+        
+        replyToEmailInput.addEventListener('input', () => {
+            if (replyToEmailInput.value.trim()) {
+                emailVisibilityGroup.style.display = 'block';
+            } else {
+                emailVisibilityGroup.style.display = 'none';
+                document.getElementById('hideEmail').checked = false;
+            }
+        });
+
         // Form submission
         document.getElementById('sendForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -358,6 +366,7 @@
                 recipientName: document.getElementById('recipientName').value,
                 message: document.getElementById('message').value,
                 replyToEmail: document.getElementById('replyToEmail').value,
+                hideEmail: document.getElementById('hideEmail').checked,
                 flower: selectedFlower
             };
 
