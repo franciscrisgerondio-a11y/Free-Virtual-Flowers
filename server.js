@@ -119,10 +119,12 @@ app.post('/api/send-flower', async (req, res) => {
         
         <p style="font-size: 1.2em; color: #333;">Dear ${recipientName},</p>
         
-        <div class="flower-display">${flower.emoji}</div>
+        <div class="flower-display">
+            <img src="${flower.url}" alt="${flower.name}" style="width: 200px; height: 200px; object-fit: contain;" />
+        </div>
         
         <h2 style="text-align: center; color: #667eea; margin: 20px 0;">
-            ${flower.name.charAt(0).toUpperCase() + flower.name.slice(1)}
+            ${flower.name}
         </h2>
         
         ${message ? `
