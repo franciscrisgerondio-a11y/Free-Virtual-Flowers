@@ -151,9 +151,12 @@ app.post('/api/send-flower', async (req, res) => {
         const mailOptions = {
             from: `"${senderName}" <${BUSINESS_EMAIL}>`,
             to: recipientEmail,
-            subject: `🌸 ${senderName} sent you a virtual ${flower.name}! [ref:${token}]`,
+            subject: `🌸 ${senderName} sent you a virtual ${flower.name}!`,
             html: emailHtml,
-            replyTo: replyToEmail ? BUSINESS_EMAIL : undefined
+            replyTo: replyToEmail ? BUSINESS_EMAIL : undefined,
+            headers: {
+                'X-Flower-Token': token || ''
+            }
         };
 
         await transporter.sendMail(mailOptions);
