@@ -174,8 +174,7 @@
         }
 
         .form-group input,
-        .form-group textarea,
-        .form-group select {
+        .form-group textarea {
             width: 100%;
             padding: 11px 14px;
             border: 2px solid #e0d9f5;
@@ -240,7 +239,6 @@
         .message.error { background: #fee2e2; color: #991b1b; border: 1.5px solid #fca5a5; display: block; }
 
         .email-vis-group { display: none; }
-        .anon-group { display: none; }
         .checkbox-label { display: flex; align-items: center; cursor: pointer; gap: 10px; }
         .checkbox-label input[type=checkbox] { width: 17px; height: 17px; accent-color: #7c3aed; }
         small { color: #7c3aed; display: block; margin-top: 5px; font-size: 0.82em; }
@@ -345,16 +343,9 @@
                 <div class="form-group email-vis-group" id="emailVisibilityGroup">
                     <label class="checkbox-label">
                         <input type="checkbox" id="hideEmail">
-                        <span>Hide my email from the recipient</span>
+                        <span>Send anonymously (hide my email)</span>
                     </label>
-                    <small style="margin-left: 27px;">When checked, your email won't be shown in the flower message, but replies will still come to you.</small>
-                </div>
-                <div class="form-group anon-group" id="anonymousGroup">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="sendAnonymously">
-                        <span>Send anonymously</span>
-                    </label>
-                    <small style="margin-left: 27px;">The recipient won't know it's you, but can still reply to your email.</small>
+                    <small style="margin-left: 27px;">Your name will still be shown, but your email stays private. The recipient can still reply.</small>
                 </div>
                 <button type="submit" class="send-btn" id="sendBtn">Send Flower 🌸</button>
             </form>
@@ -388,14 +379,8 @@
 
     document.getElementById('replyToEmail').addEventListener('input', function() {
         const visGrp = document.getElementById('emailVisibilityGroup');
-        const anonGrp = document.getElementById('anonymousGroup');
-        const hasEmail = this.value.trim();
-        visGrp.style.display = hasEmail ? 'block' : 'none';
-        anonGrp.style.display = hasEmail ? 'block' : 'none';
-        if (!hasEmail) {
-            document.getElementById('hideEmail').checked = false;
-            document.getElementById('sendAnonymously').checked = false;
-        }
+        visGrp.style.display = this.value.trim() ? 'block' : 'none';
+        if (!this.value.trim()) document.getElementById('hideEmail').checked = false;
     });
 
     document.getElementById('sendForm').addEventListener('submit', async (e) => {
@@ -409,7 +394,6 @@
             message: document.getElementById('message').value,
             replyToEmail: document.getElementById('replyToEmail').value,
             hideEmail: document.getElementById('hideEmail').checked,
-            anonymous: document.getElementById('sendAnonymously').checked,
             flower: selectedFlower
         };
 
@@ -433,6 +417,7 @@
                 document.getElementById('sendForm').reset();
                 document.querySelectorAll('.flower-option').forEach(o => o.classList.remove('selected'));
                 document.getElementById('previewSection').classList.remove('show');
+                document.getElementById('emailVisibilityGroup').style.display = 'none';
                 selectedFlower = null;
             } else {
                 showMessage(result.error || 'Failed to send flower. Please try again.', 'error');
