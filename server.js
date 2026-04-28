@@ -6,16 +6,13 @@ const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
-// Business email configuration - use environment variables for security
 const BUSINESS_EMAIL = process.env.EMAIL_ADDRESS || 'flowersforyou226@gmail.com';
 const APP_PASSWORD = process.env.EMAIL_APP_PASSWORD || 'mlbrtqzabnilesbl';
 
-// Create transporter with Gmail SMTP
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -24,7 +21,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Verify transporter configuration
 transporter.verify((error, success) => {
     if (error) {
         console.log('Email configuration error:', error);
@@ -33,7 +29,6 @@ transporter.verify((error, success) => {
     }
 });
 
-// Email sending endpoint
 app.post('/api/send-flower', async (req, res) => {
     try {
         const {
@@ -43,15 +38,16 @@ app.post('/api/send-flower', async (req, res) => {
             message,
             replyToEmail,
             hideEmail,
+            anonymous,
             flower
         } = req.body;
 
-        // Validate required fields
         if (!senderName || !recipientEmail || !recipientName || !flower) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // Create beautiful HTML email
+        const displayName = anonymous ? 'Anonymous' : senderName;
+
         const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -80,14 +76,7 @@ app.post('/api/send-flower', async (req, res) => {
         }
         .flower-display {
             text-align: center;
-            font-size: 8em;
             margin: 20px 0;
-            animation: bloom 2s ease-in-out;
-        }
-        @keyframes bloom {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
         }
         .message-box {
             background: #f8f9fa;
@@ -140,36 +129,31 @@ app.post('/api/send-flower', async (req, res) => {
         ` : ''}
         
         <div class="sender-info">
-            <p>With love from<br><strong>${senderName}</strong></p>
+            <p>With love from<br><strong>${displayName}</strong></p>
         </div>
     </div>
 </body>
 </html>
         `;
 
-        // Email options - sender name is customizable by user
         const mailOptions = {
-            from: `"${senderName}" <${BUSINESS_EMAIL}>`,
+            from: `"${displayName}" <${BUSINESS_EMAIL}>`,
             to: recipientEmail,
-            subject: `🌸 ${senderName} sent you a virtual ${flower.name}!`,
+            subject: anonymous
+                ? `🌸 Someone sent you a virtual ${flower.name}!`
+                : `🌸 ${senderName} sent you a virtual ${flower.name}!`,
             html: emailHtml,
             replyTo: replyToEmail || undefined
         };
 
-        // Send email
         await transporter.sendMail(mailOptions);
 
-        res.json({ 
-            success: true, 
-            message: 'Flower sent successfully!' 
-        });
+        res.json({ success: true, message: 'Flower sent successfully!' });
 
     } catch (error) {
         console.error('Error sending email:', error);
-        
-        // Provide more specific error messages
+
         let errorMessage = 'Failed to send flower. Please try again.';
-        
         if (error.code === 'EAUTH' || error.message.includes('authentication')) {
             errorMessage = 'Email authentication failed. Please check the email credentials.';
         } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
@@ -179,7 +163,7 @@ app.post('/api/send-flower', async (req, res) => {
         } else if (error.message) {
             errorMessage = 'Error: ' + error.message;
         }
-        
+
         res.status(500).json({
             error: errorMessage,
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -187,12 +171,10 @@ app.post('/api/send-flower', async (req, res) => {
     }
 });
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Virtual Flowers API is running' });
 });
 
-// Serve index.html for root route
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
