@@ -2,6 +2,7 @@ const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,6 +13,10 @@ app.use(express.static(__dirname));
 
 const BUSINESS_EMAIL = process.env.EMAIL_ADDRESS || 'flowersforyou226@gmail.com';
 const APP_PASSWORD = process.env.EMAIL_APP_PASSWORD || 'mlbrtqzabnilesbl';
+
+// In-memory token store: { token: senderEmail }
+// For production, replace with a database
+const tokenStore = {};
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -48,6 +53,18 @@ app.post('/api/send-flower', async (req, res) => {
 
         const displayName = anonymous ? 'Anonymous' : senderName;
 
+        // Generate token and store sender email if they provided one
+        let token = null;
+        if (replyToEmail) {
+            token = crypto.randomBytes(8).toString('hex');
+            tokenStore[token] = {
+                senderEmail: replyToEmail,
+                senderName: displayName,
+                recipientName,
+                expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+            };
+        }
+
         const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -69,15 +86,8 @@ app.post('/api/send-flower', async (req, res) => {
             padding: 30px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
-        .header {
-            text-align: center;
-            color: #667eea;
-            margin-bottom: 30px;
-        }
-        .flower-display {
-            text-align: center;
-            margin: 20px 0;
-        }
+        .header { text-align: center; color: #667eea; margin-bottom: 30px; }
+        .flower-display { text-align: center; margin: 20px 0; }
         .message-box {
             background: #f8f9fa;
             border-left: 4px solid #667eea;
@@ -91,12 +101,14 @@ app.post('/api/send-flower', async (req, res) => {
             margin-top: 30px;
             font-style: italic;
         }
-        .reply-info {
+        .reply-note {
             background: #e7f3ff;
             border-left: 4px solid #667eea;
             padding: 15px;
             margin: 20px 0;
             border-radius: 0 8px 8px 0;
+            font-size: 0.9em;
+            color: #2c5282;
         }
     </style>
 </head>
@@ -105,29 +117,35 @@ app.post('/api/send-flower', async (req, res) => {
         <div class="header">
             <h1>🌸 You've Received a Virtual Flower! 🌹</h1>
         </div>
-        
+
         <p style="font-size: 1.2em; color: #333;">Dear ${recipientName},</p>
-        
+
         <div class="flower-display">
             <img src="${flower.url}" alt="${flower.name}" style="width: 200px; height: 200px; object-fit: contain;" />
         </div>
-        
+
         <h2 style="text-align: center; color: #667eea; margin: 20px 0;">
             ${flower.name}
         </h2>
-        
+
         ${message ? `
         <div class="message-box">
             <p style="margin: 0; line-height: 1.6;">${message}</p>
         </div>
         ` : ''}
-        
-        ${replyToEmail && !hideEmail ? `
-        <div class="reply-info">
-            <p style="margin: 0; color: #2c5282;"><strong>📧 Reply Information:</strong> If you'd like to respond to this flower gift, you can reach the sender at: <a href="mailto:${replyToEmail}" style="color: #667eea;">${replyToEmail}</a></p>
+
+        ${replyToEmail && !hideEmail && !anonymous ? `
+        <div class="reply-note">
+            <p style="margin: 0;"><strong>📧 Reply Information:</strong> You can reach the sender at: <a href="mailto:${replyToEmail}" style="color: #667eea;">${replyToEmail}</a></p>
         </div>
         ` : ''}
-        
+
+        ${token ? `
+        <div class="reply-note">
+            <p style="margin: 0;">💌 You can reply directly to this email and your message will be forwarded to the sender.</p>
+        </div>
+        ` : ''}
+
         <div class="sender-info">
             <p>With love from<br><strong>${displayName}</strong></p>
         </div>
@@ -136,14 +154,16 @@ app.post('/api/send-flower', async (req, res) => {
 </html>
         `;
 
+        const subject = anonymous
+            ? `🌸 Someone sent you a virtual ${flower.name}! [ref:${token}]`
+            : `🌸 ${senderName} sent you a virtual ${flower.name}! [ref:${token}]`;
+
         const mailOptions = {
             from: `"${displayName}" <${BUSINESS_EMAIL}>`,
             to: recipientEmail,
-            subject: anonymous
-                ? `🌸 Someone sent you a virtual ${flower.name}!`
-                : `🌸 ${senderName} sent you a virtual ${flower.name}!`,
+            subject,
             html: emailHtml,
-            replyTo: replyToEmail || undefined
+            replyTo: replyToEmail ? BUSINESS_EMAIL : undefined
         };
 
         await transporter.sendMail(mailOptions);
@@ -169,6 +189,17 @@ app.post('/api/send-flower', async (req, res) => {
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
+});
+
+// Endpoint for Google Apps Script to look up a token
+app.get('/api/lookup-token/:token', (req, res) => {
+    const entry = tokenStore[req.params.token];
+    if (!entry) return res.status(404).json({ error: 'Token not found' });
+    if (Date.now() > entry.expiresAt) {
+        delete tokenStore[req.params.token];
+        return res.status(410).json({ error: 'Token expired' });
+    }
+    res.json(entry);
 });
 
 app.get('/api/health', (req, res) => {
