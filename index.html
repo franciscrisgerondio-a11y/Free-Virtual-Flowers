@@ -52,7 +52,6 @@
             font-weight: 700;
         }
 
-        /* Flower Grid */
         .flower-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -134,7 +133,6 @@
 
         .flower-option.selected .flower-name { color: #3b0764; }
 
-        /* Preview */
         .preview-section {
             display: none;
             background: linear-gradient(135deg, #fdf4ff, #ede9fe);
@@ -165,7 +163,6 @@
             color: #5b21b6;
         }
 
-        /* Form */
         .form-group { margin-bottom: 18px; }
 
         .form-group label {
@@ -243,6 +240,7 @@
         .message.error { background: #fee2e2; color: #991b1b; border: 1.5px solid #fca5a5; display: block; }
 
         .email-vis-group { display: none; }
+        .anon-group { display: none; }
         .checkbox-label { display: flex; align-items: center; cursor: pointer; gap: 10px; }
         .checkbox-label input[type=checkbox] { width: 17px; height: 17px; accent-color: #7c3aed; }
         small { color: #7c3aed; display: block; margin-top: 5px; font-size: 0.82em; }
@@ -267,35 +265,35 @@
                     </div>
                     <span class="flower-name">Rose Bouquet</span>
                 </div>
-                
+
                 <div class="flower-option" data-flower="flower1" data-name="Peony Bouquet" data-url="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_1.jpeg">
                     <div class="flower-svg-wrap">
                         <img src="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_1.jpeg" alt="Peony Bouquet" width="80" height="80">
                     </div>
                     <span class="flower-name">Peony Bouquet</span>
                 </div>
-                
+
                 <div class="flower-option" data-flower="flower2" data-name="Daisy Bouquet" data-url="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_2.jpeg">
                     <div class="flower-svg-wrap">
                         <img src="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_2.jpeg" alt="Daisy Bouquet" width="80" height="80">
                     </div>
                     <span class="flower-name">Daisy Bouquet</span>
                 </div>
-                
+
                 <div class="flower-option" data-flower="flower3" data-name="Lily Bouquet" data-url="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_3.jpeg">
                     <div class="flower-svg-wrap">
                         <img src="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_3.jpeg" alt="Lily Bouquet" width="80" height="80">
                     </div>
                     <span class="flower-name">Lily Bouquet</span>
                 </div>
-                
+
                 <div class="flower-option" data-flower="flower4" data-name="Wildflower Bouquet" data-url="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_4.jpeg">
                     <div class="flower-svg-wrap">
                         <img src="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_4.jpeg" alt="Wildflower Bouquet" width="80" height="80">
                     </div>
                     <span class="flower-name">Wildflower Bouquet</span>
                 </div>
-                
+
                 <div class="flower-option" data-flower="flower5" data-name="Garden Rose Bouquet" data-url="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_5.jpeg">
                     <div class="flower-svg-wrap">
                         <img src="https://cdn.jsdelivr.net/gh/franciscrisgerondio-a11y/Free-Virtual-Flowers@main/Flower_5.jpeg" alt="Garden Rose Bouquet" width="80" height="80">
@@ -351,6 +349,13 @@
                     </label>
                     <small style="margin-left: 27px;">When checked, your email won't be shown in the flower message, but replies will still come to you.</small>
                 </div>
+                <div class="form-group anon-group" id="anonymousGroup">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sendAnonymously">
+                        <span>Send anonymously</span>
+                    </label>
+                    <small style="margin-left: 27px;">The recipient won't know it's you, but can still reply to your email.</small>
+                </div>
                 <button type="submit" class="send-btn" id="sendBtn">Send Flower 🌸</button>
             </form>
 
@@ -382,9 +387,15 @@
     });
 
     document.getElementById('replyToEmail').addEventListener('input', function() {
-        const grp = document.getElementById('emailVisibilityGroup');
-        grp.style.display = this.value.trim() ? 'block' : 'none';
-        if (!this.value.trim()) document.getElementById('hideEmail').checked = false;
+        const visGrp = document.getElementById('emailVisibilityGroup');
+        const anonGrp = document.getElementById('anonymousGroup');
+        const hasEmail = this.value.trim();
+        visGrp.style.display = hasEmail ? 'block' : 'none';
+        anonGrp.style.display = hasEmail ? 'block' : 'none';
+        if (!hasEmail) {
+            document.getElementById('hideEmail').checked = false;
+            document.getElementById('sendAnonymously').checked = false;
+        }
     });
 
     document.getElementById('sendForm').addEventListener('submit', async (e) => {
@@ -398,6 +409,7 @@
             message: document.getElementById('message').value,
             replyToEmail: document.getElementById('replyToEmail').value,
             hideEmail: document.getElementById('hideEmail').checked,
+            anonymous: document.getElementById('sendAnonymously').checked,
             flower: selectedFlower
         };
 
