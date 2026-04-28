@@ -143,6 +143,8 @@ app.post('/api/send-flower', async (req, res) => {
         <div class="sender-info">
             <p>With love from<br><strong>${senderName}</strong></p>
         </div>
+        
+        <div style="display:none;font-size:0;color:transparent;max-height:0;overflow:hidden;">ref:${token}</div>
     </div>
 </body>
 </html>
