@@ -14,8 +14,6 @@ app.use(express.static(__dirname));
 const BUSINESS_EMAIL = process.env.EMAIL_ADDRESS || 'flowersforyou226@gmail.com';
 const APP_PASSWORD = process.env.EMAIL_APP_PASSWORD || 'mlbrtqzabnilesbl';
 
-// In-memory token store: { token: senderEmail }
-// For production, replace with a database
 const tokenStore = {};
 
 const transporter = nodemailer.createTransport({
@@ -43,7 +41,6 @@ app.post('/api/send-flower', async (req, res) => {
             message,
             replyToEmail,
             hideEmail,
-            anonymous,
             flower
         } = req.body;
 
@@ -51,17 +48,14 @@ app.post('/api/send-flower', async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        const displayName = anonymous ? 'Anonymous' : senderName;
-
-        // Generate token and store sender email if they provided one
         let token = null;
         if (replyToEmail) {
             token = crypto.randomBytes(8).toString('hex');
             tokenStore[token] = {
                 senderEmail: replyToEmail,
-                senderName: displayName,
+                senderName,
                 recipientName,
-                expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+                expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000)
             };
         }
 
@@ -134,7 +128,7 @@ app.post('/api/send-flower', async (req, res) => {
         </div>
         ` : ''}
 
-        ${replyToEmail && !hideEmail && !anonymous ? `
+        ${replyToEmail && !hideEmail ? `
         <div class="reply-note">
             <p style="margin: 0;"><strong>📧 Reply Information:</strong> You can reach the sender at: <a href="mailto:${replyToEmail}" style="color: #667eea;">${replyToEmail}</a></p>
         </div>
@@ -147,21 +141,17 @@ app.post('/api/send-flower', async (req, res) => {
         ` : ''}
 
         <div class="sender-info">
-            <p>With love from<br><strong>${displayName}</strong></p>
+            <p>With love from<br><strong>${senderName}</strong></p>
         </div>
     </div>
 </body>
 </html>
         `;
 
-        const subject = anonymous
-            ? `🌸 Someone sent you a virtual ${flower.name}! [ref:${token}]`
-            : `🌸 ${senderName} sent you a virtual ${flower.name}! [ref:${token}]`;
-
         const mailOptions = {
-            from: `"${displayName}" <${BUSINESS_EMAIL}>`,
+            from: `"${senderName}" <${BUSINESS_EMAIL}>`,
             to: recipientEmail,
-            subject,
+            subject: `🌸 ${senderName} sent you a virtual ${flower.name}! [ref:${token}]`,
             html: emailHtml,
             replyTo: replyToEmail ? BUSINESS_EMAIL : undefined
         };
@@ -191,7 +181,6 @@ app.post('/api/send-flower', async (req, res) => {
     }
 });
 
-// Endpoint for Google Apps Script to look up a token
 app.get('/api/lookup-token/:token', (req, res) => {
     const entry = tokenStore[req.params.token];
     if (!entry) return res.status(404).json({ error: 'Token not found' });
