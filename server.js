@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,8 +14,17 @@ app.use(express.static(__dirname));
 
 const BUSINESS_EMAIL = process.env.EMAIL_ADDRESS || 'flowersforyou226@gmail.com';
 const APP_PASSWORD = process.env.EMAIL_APP_PASSWORD || 'mlbrtqzabnilesbl';
+const TOKEN_FILE = './tokenStore.json';
 
-const tokenStore = {};
+// Load token store from file on startup
+let tokenStore = {};
+if (fs.existsSync(TOKEN_FILE)) {
+    try { tokenStore = JSON.parse(fs.readFileSync(TOKEN_FILE)); } catch {}
+}
+
+function saveTokenStore() {
+    fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokenStore));
+}
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -57,6 +67,7 @@ app.post('/api/send-flower', async (req, res) => {
                 recipientName,
                 expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000)
             };
+            saveTokenStore();
         }
 
         const emailHtml = `
@@ -109,7 +120,7 @@ app.post('/api/send-flower', async (req, res) => {
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌸 You've Received a Virtual Flower! 🌹</h1>
+            <h1>You've Received a Virtual Flower!</h1>
         </div>
 
         <p style="font-size: 1.2em; color: #333;">Dear ${recipientName},</p>
@@ -130,20 +141,19 @@ app.post('/api/send-flower', async (req, res) => {
 
         ${replyToEmail && !hideEmail ? `
         <div class="reply-note">
-            <p style="margin: 0;"><strong>📧 Reply Information:</strong> You can reach the sender at: <a href="mailto:${replyToEmail}" style="color: #667eea;">${replyToEmail}</a></p>
+            <p style="margin: 0;"><strong>Reply Information:</strong> You can reach the sender at: <a href="mailto:${replyToEmail}" style="color: #667eea;">${replyToEmail}</a></p>
         </div>
         ` : ''}
 
         ${token ? `
         <div class="reply-note">
-            <p style="margin: 0;">💌 You can reply directly to this email and your message will be forwarded to the sender.</p>
+            <p style="margin: 0;">You can reply directly to this email and your message will be forwarded to the sender.</p>
         </div>
         ` : ''}
 
         <div class="sender-info">
             <p>With love from<br><strong>${senderName}</strong></p>
         </div>
-        
         <div style="display:none;font-size:0;color:transparent;max-height:0;overflow:hidden;">ref:${token}</div>
     </div>
 </body>
@@ -189,6 +199,7 @@ app.get('/api/lookup-token/:token', (req, res) => {
     if (!entry) return res.status(404).json({ error: 'Token not found' });
     if (Date.now() > entry.expiresAt) {
         delete tokenStore[req.params.token];
+        saveTokenStore();
         return res.status(410).json({ error: 'Token expired' });
     }
     res.json(entry);
